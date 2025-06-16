@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { globalGeneralSelectors } from '@/store/global/selectors';
+
 import { VARIABLE_GENERATORS, parsePlaceholderVariablesMessages } from './parserPlaceholder';
 
 // Mock dependencies
@@ -33,6 +35,18 @@ vi.mock('@/store/agent/selectors', () => ({
   },
 }));
 
+vi.mock('@/store/global/selectors', () => ({
+  globalGeneralSelectors: {
+    currentLanguage: vi.fn(),
+  },
+}));
+
+vi.mock('@/store/global', () => ({
+  useGlobalStore: {
+    getState: () => ({}),
+  },
+}));
+
 describe('parsePlaceholderVariablesMessages', () => {
   beforeEach(() => {
     // Mock Date for consistent testing
@@ -61,6 +75,44 @@ describe('parsePlaceholderVariablesMessages', () => {
 
       expect(result[0].content).toContain('testuser');
       expect(result[0].content).toContain(new Date().toLocaleDateString());
+    });
+
+    it('should use current language for date formatting', () => {
+      // 模拟中文环境
+      vi.mocked(globalGeneralSelectors.currentLanguage).mockReturnValue('zh-CN');
+
+      const messages = [
+        {
+          id: '1',
+          content: '今天是{{date}}，星期{{weekday}}',
+        },
+      ];
+
+      const result = parsePlaceholderVariablesMessages(messages);
+
+      // 验证中文日期格式（包含年月日）
+      expect(result[0].content).toMatch(/\d{4}年\d{1,2}月\d{1,2}日/);
+      // 验证中文星期格式
+      expect(result[0].content).toMatch(/星期[一二三四五六日]/);
+    });
+
+    it('should use English format when language is en-US', () => {
+      // 模拟英语环境
+      vi.mocked(globalGeneralSelectors.currentLanguage).mockReturnValue('en-US');
+
+      const messages = [
+        {
+          id: '1',
+          content: 'Today is {{weekday}}, {{date}}',
+        },
+      ];
+
+      const result = parsePlaceholderVariablesMessages(messages);
+
+      // 验证英文日期格式（包含/分隔符）
+      expect(result[0].content).toMatch(/\d{1,2}\/\d{1,2}\/\d{4}/);
+      // 验证英文星期格式
+      expect(result[0].content).toMatch(/Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday/);
     });
 
     it('should handle multiple variables in one message', () => {
@@ -291,6 +343,74 @@ describe('parsePlaceholderVariablesMessages', () => {
       const result = parsePlaceholderVariablesMessages(messages);
 
       expect(result[0].content).toBe('User: testuser, Nickname: Test User');
+    });
+
+    it('should handle language change dynamically', () => {
+      // 初始设置为中文
+      vi.mocked(globalGeneralSelectors.currentLanguage).mockReturnValue('zh-CN');
+      const messagesCN = [
+        {
+          id: '1',
+          content: '{{date}}',
+        },
+        {
+          id: '2',
+          content: '{{weekday}}',
+        },
+        {
+          id: '3',
+          content: '{{time}}',
+        },
+        {
+          id: '4',
+          content: '{{datetime}}',
+        },
+      ];
+      const resultCN = parsePlaceholderVariablesMessages(messagesCN);
+      const cnDate = resultCN[0].content;
+      const cnWeekday = resultCN[1].content;
+      const cnTime = resultCN[2].content;
+      const cnDatetime = resultCN[3].content;
+
+      // 切换为英文
+      vi.mocked(globalGeneralSelectors.currentLanguage).mockReturnValue('en-US');
+      const messagesEN = [
+        {
+          id: '1',
+          content: '{{date}}',
+        },
+        {
+          id: '2',
+          content: '{{weekday}}',
+        },
+        {
+          id: '3',
+          content: '{{time}}',
+        },
+        {
+          id: '4',
+          content: '{{datetime}}',
+        },
+      ];
+      const resultEN = parsePlaceholderVariablesMessages(messagesEN);
+      const enDate = resultEN[0].content;
+      const enWeekday = resultEN[1].content;
+      const enTime = resultEN[2].content;
+      const enDatetime = resultEN[3].content;
+
+      // 验证不同语言下的日期格式不同
+      expect(cnDate).not.toEqual(enDate);
+      expect(cnDate).toMatch(/\d{4}\/\d{1,2}\/\d{1,2}/);
+      expect(enDate).toMatch(/\d{1,2}\/\d{1,2}\/\d{4}/);
+      expect(cnWeekday).not.toEqual(enWeekday);
+      expect(cnWeekday).toMatch(/星期[一二三四五六日]/);
+      expect(enWeekday).toMatch(/Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday/);
+      expect(cnTime).not.toEqual(enTime);
+      expect(cnTime).toMatch(/\d{1,2}:\d{2}:\d{2}/);
+      expect(enTime).toMatch(/\d{1,2}:\d{2}:\d{2} (AM|PM)/);
+      expect(cnDatetime).not.toEqual(enDatetime);
+      expect(cnDatetime).toMatch(/\d{4}\/\d{1,2}\/\d{1,2} \d{1,2}:\d{2}:\d{2}/);
+      expect(enDatetime).toMatch(/\d{1,2}\/\d{1,2}\/\d{4}, \d{1,2}:\d{2}:\d{2} (AM|PM)/);
     });
   });
 

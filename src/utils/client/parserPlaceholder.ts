@@ -1,40 +1,44 @@
 import { template } from 'lodash-es';
 
-import { uuid } from '@/utils/uuid';
-
+import { agentChatConfigSelectors } from '@/store/agent/selectors';
+import { getAgentStoreState } from '@/store/agent/store';
+import { useGlobalStore } from '@/store/global';
+import { globalGeneralSelectors } from '@/store/global/selectors';
 import { useUserStore } from '@/store/user';
 import { userProfileSelectors } from '@/store/user/selectors';
-
-import { getAgentStoreState } from '@/store/agent/store';
-import { agentChatConfigSelectors } from '@/store/agent/selectors';
+import { uuid } from '@/utils/uuid';
 
 const placeholderVariablesRegex = /{{(.*?)}}/g;
 
 /* eslint-disable sort-keys-fix/sort-keys-fix */
 export const VARIABLE_GENERATORS = {
   /**
-  * 时间类模板变量
-  *
-  * | Value | Example |
-  * |-------|---------|
-  * | `{{date}}` | 12/25/2023 |
-  * | `{{datetime}}` | 12/25/2023, 2:30:45 PM |
-  * | `{{day}}` | 25 |
-  * | `{{hour}}` | 14 |
-  * | `{{iso}}` | 2023-12-25T14:30:45.123Z |
-  * | `{{locale}}` | zh-CN |
-  * | `{{minute}}` | 30 |
-  * | `{{month}}` | 12 |
-  * | `{{second}}` | 45 |
-  * | `{{time}}` | 2:30:45 PM |
-  * | `{{timestamp}}` | 1703538645123 |
-  * | `{{timezone}}` | America/New_York |
-  * | `{{weekday}}` | Monday |
-  * | `{{year}}` | 2023 |
-  *
-  */
-  date: () => new Date().toLocaleDateString(),
-  datetime: () => new Date().toLocaleString(),
+   * 时间类模板变量
+   *
+   * | Value | Example |
+   * |-------|---------|
+   * | `{{date}}` | 12/25/2023 |
+   * | `{{datetime}}` | 12/25/2023, 2:30:45 PM |
+   * | `{{day}}` | 25 |
+   * | `{{hour}}` | 14 |
+   * | `{{iso}}` | 2023-12-25T14:30:45.123Z |
+   * | `{{locale}}` | zh-CN |
+   * | `{{minute}}` | 30 |
+   * | `{{month}}` | 12 |
+   * | `{{second}}` | 45 |
+   * | `{{time}}` | 2:30:45 PM |
+   * | `{{timestamp}}` | 1703538645123 |
+   * | `{{timezone}}` | America/New_York |
+   * | `{{weekday}}` | Monday |
+   * | `{{year}}` | 2023 |
+   *
+   */
+  date: () =>
+    new Date().toLocaleDateString(
+      globalGeneralSelectors.currentLanguage(useGlobalStore.getState()),
+    ),
+  datetime: () =>
+    new Date().toLocaleString(globalGeneralSelectors.currentLanguage(useGlobalStore.getState())),
   day: () => new Date().getDate().toString().padStart(2, '0'),
   hour: () => new Date().getHours().toString().padStart(2, '0'),
   iso: () => new Date().toISOString(),
@@ -42,82 +46,96 @@ export const VARIABLE_GENERATORS = {
   minute: () => new Date().getMinutes().toString().padStart(2, '0'),
   month: () => (new Date().getMonth() + 1).toString().padStart(2, '0'),
   second: () => new Date().getSeconds().toString().padStart(2, '0'),
-  time: () => new Date().toLocaleTimeString(),
+  time: () =>
+    new Date().toLocaleTimeString(
+      globalGeneralSelectors.currentLanguage(useGlobalStore.getState()),
+    ),
   timestamp: () => Date.now().toString(),
   timezone: () => Intl.DateTimeFormat().resolvedOptions().timeZone,
-  weekday: () => new Date().toLocaleDateString('en-US', { weekday: 'long' }),
+  weekday: () =>
+    new Date().toLocaleDateString(
+      globalGeneralSelectors.currentLanguage(useGlobalStore.getState()),
+      { weekday: 'long' },
+    ),
   year: () => new Date().getFullYear().toString(),
 
   /**
-  * 用户信息类模板变量
-  *
-  * | Value | Example |
-  * |-------|---------|
-  * | `{{email}}` | demo@lobehub.com |
-  * | `{{nickname}}` | 社区版用户 |
-  * | `{{username}}` | LobeChat |
-  *
-  */
+   * 用户信息类模板变量
+   *
+   * | Value | Example |
+   * |-------|---------|
+   * | `{{email}}` | demo@lobehub.com |
+   * | `{{nickname}}` | 社区版用户 |
+   * | `{{username}}` | LobeChat |
+   *
+   */
   email: () => userProfileSelectors.email(useUserStore.getState()) ?? '',
   nickname: () => userProfileSelectors.nickName(useUserStore.getState()) ?? '',
-  username: () => userProfileSelectors.displayUserName(useUserStore.getState()) ?? userProfileSelectors.fullName(useUserStore.getState()) ?? '',
+  username: () =>
+    userProfileSelectors.displayUserName(useUserStore.getState()) ??
+    userProfileSelectors.fullName(useUserStore.getState()) ??
+    '',
 
   /**
-  * 随机值类模板变量
-  *
-  * | Value | Example |
-  * |-------|---------|
-  * | `{{random}}` | 100041 |
-  * | `{{random_bool}}` | true |
-  * | `{{random_float}}` | 76.02 |
-  * | `{{random_hex}}` | de0dbd |
-  * | `{{random_int}}` | 68 |
-  * | `{{random_string}}` | wqn9zfrqe7h |
-  *
-  */
+   * 随机值类模板变量
+   *
+   * | Value | Example |
+   * |-------|---------|
+   * | `{{random}}` | 100041 |
+   * | `{{random_bool}}` | true |
+   * | `{{random_float}}` | 76.02 |
+   * | `{{random_hex}}` | de0dbd |
+   * | `{{random_int}}` | 68 |
+   * | `{{random_string}}` | wqn9zfrqe7h |
+   *
+   */
   random: () => Math.floor(Math.random() * 1_000_000 + 1).toString(),
   random_bool: () => (Math.random() > 0.5 ? 'true' : 'false'),
   random_float: () => (Math.random() * 100).toFixed(2),
-  random_hex: () => Math.floor(Math.random() * 16_777_215).toString(16).padStart(6, '0'),
+  random_hex: () =>
+    Math.floor(Math.random() * 16_777_215)
+      .toString(16)
+      .padStart(6, '0'),
   random_int: () => Math.floor(Math.random() * 100 + 1).toString(),
   random_string: () => Math.random().toString(36).slice(2, 15),
   random_digit: () => Math.floor(Math.random() * 10).toString(),
 
   /**
-  * UUID 类模板变量
-  *
-  * | Value | Example |
-  * |-------|---------|
-  * | `{{uuid}}` | dd90b35-669f-4e87-beb8-ac6877f6995d |
-  * | `{{uuid_short}}` | dd90b35 |
-  *
-  */
+   * UUID 类模板变量
+   *
+   * | Value | Example |
+   * |-------|---------|
+   * | `{{uuid}}` | dd90b35-669f-4e87-beb8-ac6877f6995d |
+   * | `{{uuid_short}}` | dd90b35 |
+   *
+   */
   uuid: () => uuid(),
   uuid_short: () => uuid().split('-')[0],
 
   /**
-  * 平台类模板变量
-  *
-  * | Value | Example |
-  * |-------|---------|
-  * | `{{language}}` | zh-CN |
-  * | `{{platform}}` | MacIntel |
-  * | `{{user_agent}}` | Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0 |
-  *
-  */
-  language: () => typeof navigator !== 'undefined' ? navigator.language : '',
-  platform: () => typeof navigator !== 'undefined' ? navigator.platform : '',
-  user_agent: () => typeof navigator !== 'undefined' ? navigator.userAgent : '',
+   * 平台类模板变量
+   *
+   * | Value | Example |
+   * |-------|---------|
+   * | `{{language}}` | zh-CN |
+   * | `{{platform}}` | MacIntel |
+   * | `{{user_agent}}` | Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0 |
+   *
+   */
+  language: () => (typeof navigator !== 'undefined' ? navigator.language : ''),
+  platform: () => (typeof navigator !== 'undefined' ? navigator.platform : ''),
+  user_agent: () => (typeof navigator !== 'undefined' ? navigator.userAgent : ''),
 
   /**
-  * LobeChat 模板变量
-  *
-  * | Value | Example |
-  * |-------|---------|
-  * | `{{input_template}}` | Some contents |
-  *
-  */
-  input_template: () => agentChatConfigSelectors.currentChatConfig(getAgentStoreState()).inputTemplate || '',
+   * LobeChat 模板变量
+   *
+   * | Value | Example |
+   * |-------|---------|
+   * | `{{input_template}}` | Some contents |
+   *
+   */
+  input_template: () =>
+    agentChatConfigSelectors.currentChatConfig(getAgentStoreState()).inputTemplate || '',
 } as Record<string, () => string>;
 
 /**
@@ -127,7 +145,7 @@ export const VARIABLE_GENERATORS = {
  */
 const extractPlaceholderVariables = (text: string): string[] => {
   const matches = [...text.matchAll(placeholderVariablesRegex)];
-  return matches.map(m => m[1].trim());
+  return matches.map((m) => m[1].trim());
 };
 
 /**
@@ -145,7 +163,7 @@ export const parsePlaceholderVariables = (text: string, depth = 2): string => {
       const variables = Object.fromEntries(
         extractPlaceholderVariables(result)
           .map((key) => [key, VARIABLE_GENERATORS[key]?.()])
-          .filter(([, value]) => value !== undefined)
+          .filter(([, value]) => value !== undefined),
       );
 
       const replaced = template(result, { interpolate: placeholderVariablesRegex })(variables);
@@ -166,7 +184,7 @@ export const parsePlaceholderVariables = (text: string, depth = 2): string => {
  * @returns 处理后的消息数组
  */
 export const parsePlaceholderVariablesMessages = (messages: any[]): any[] =>
-  messages.map(message => {
+  messages.map((message) => {
     if (!message?.content) return message;
 
     const { content } = message;
@@ -180,11 +198,9 @@ export const parsePlaceholderVariablesMessages = (messages: any[]): any[] =>
     if (Array.isArray(content)) {
       return {
         ...message,
-        content: content.map(item => 
-          item?.type === 'text' 
-            ? { ...item, text: parsePlaceholderVariables(item.text) }
-            : item
-        )
+        content: content.map((item) =>
+          item?.type === 'text' ? { ...item, text: parsePlaceholderVariables(item.text) } : item,
+        ),
       };
     }
 
